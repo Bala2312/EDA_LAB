@@ -1,0 +1,98 @@
+```{r}
+#1 .Load the built-in AirPassengers dataset in R.
+data("AirPassengers")
+```
+
+```{r}
+#2. Explore the first five and last five observations of the dataset.
+head(AirPassengers, 5)
+tail(AirPassengers, 5)
+
+head(data, 5)
+tail(data, 5)
+```
+
+```{r}
+#3. Identify the starting and ending time periods of the dataset. (start, end)
+start(AirPassengers)
+end(AirPassengers)
+```
+
+```{r}
+#4. Determine the frequency and time-series characteristics of the dataset. (frequency, class)
+frequency(AirPassengers)
+class(AirPassengers)
+str(AirPassengers)
+```
+
+```{r}
+#5. Visualize the monthly passenger trend over the entire period. (plot)
+plot(AirPassengers,
+     main = "Monthly Airline Passenger Trend (1949-1960)",
+     xlab = "Year",
+     ylab = "Number of Passengers",
+     col = "blue",
+     lwd = 2)
+```
+
+```{r}
+#6. Decompose the time series into trend, seasonal, and random components. (decompose)
+decomposed <- decompose(AirPassengers)
+decomposed
+```
+
+```{r}
+#7. Plot the decomposed components to examine the underlying patterns.
+plot(decomposed)
+```
+
+```{r}
+#8. Analyze the autocorrelation and partial autocorrelation of the time series. (acf, pacf)
+acf(AirPassengers,
+    main = "ACF of AirPassengers")
+
+pacf(AirPassengers,
+     main = "PACF of AirPassengers")
+```
+
+```{r}
+# 9. Fit a SEASONAL ARIMA model on log-transformed data
+log_ap <- log(AirPassengers)
+
+if (!requireNamespace("forecast", quietly = TRUE)) install.packages("forecast")
+library(forecast)
+
+fit <- auto.arima(log_ap, seasonal = TRUE, stepwise = FALSE, approximation = FALSE)
+fit
+```
+
+```{r}
+# 10. Model summary & diagnostics
+summary(fit)
+
+checkresiduals(fit)
+```
+
+```{r}
+# 11. Forecast next 12 months
+fc <- forecast(fit, h = 12)
+
+# back-transform
+fc$mean     <- exp(fc$mean)
+fc$lower    <- exp(fc$lower)
+fc$upper    <- exp(fc$upper)
+fc$x        <- AirPassengers
+
+fc$mean
+fc$lower; fc$upper
+```
+
+```{r}
+# 12. Plot actual vs forecasted values
+plot(fc,
+     main = "AirPassengers: Actual vs Forecasted Values (Seasonal ARIMA)",
+     xlab = "Year", ylab = "Number of Passengers",
+     col = "blue", lwd = 2)
+lines(AirPassengers, col = "blue", lwd = 2)  # ensure actual is blue
+grid()
+```

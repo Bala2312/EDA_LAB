@@ -1,0 +1,137 @@
+---
+title: "Lab Assessment 5 - Multivariate Analysis"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+required_packages <- c("ggplot2", "GGally")
+for (pkg in required_packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg, repos = "https://cran.rstudio.com/")
+  }
+}
+library(ggplot2)
+library(GGally)
+```
+
+## Q1: Load the dataset and identify numerical / categorical variables
+
+```{r q1}
+df <- read.csv("HepatitisCdata.csv", row.names = 1)
+
+df$Category <- as.factor(df$Category)
+df$Sex      <- as.factor(df$Sex)
+
+str(df)
+summary(df)
+
+cat_vars <- names(df)[sapply(df, is.factor)]
+num_vars <- names(df)[sapply(df, is.numeric)]
+
+cat("Q1 Categorical Variables:", cat_vars, "\n")
+cat("Q1 Numerical Variables:", num_vars, "\n")
+```
+
+## Q2: Scatter plot - two numerical variables (X, Y) + one variable as color
+
+```{r q2}
+p2 <- ggplot(df, aes(x = ALB, y = ALP, color = Category)) +
+  geom_point() +
+  labs(title = "Q2: ALB vs ALP colored by Category") +
+  theme_minimal()
+
+print(p2)
+```
+
+## Q3: Scatter plot - two numerical variables + color + shape (4 variables)
+
+```{r q3}
+p3 <- ggplot(df, aes(x = ALB, y = ALP, color = Category, shape = Sex)) +
+  geom_point(size = 2) +
+  labs(title = "Q3: ALB vs ALP by Category (color) and Sex (shape)") +
+  theme_minimal()
+
+print(p3)
+```
+
+## Q4: Scatter plot - two numerical variables + color + point size (4 variables)
+
+```{r q4}
+p4 <- ggplot(df, aes(x = ALB, y = ALP, color = Category, size = Age)) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Q4: ALB vs ALP by Category (color) and Age (size)") +
+  theme_minimal()
+
+print(p4)
+```
+
+## Q5: Bubble plot - three numerical variables (X, Y, bubble size)
+
+```{r q5}
+p5 <- ggplot(df, aes(x = ALB, y = ALP, size = AST)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  scale_size_continuous(range = c(1, 10)) +
+  labs(title = "Q5: Bubble plot - ALB vs ALP, size = AST") +
+  theme_minimal()
+
+print(p5)
+```
+
+## Q6: Subplots using facet_wrap()
+
+```{r q6}
+p6 <- ggplot(df, aes(x = ALB, y = ALP)) +
+  geom_point(color = "darkgreen") +
+  facet_wrap(~ Category) +
+  labs(title = "Q6: ALB vs ALP faceted by Category") +
+  theme_minimal()
+
+print(p6)
+```
+
+## Q7: Subplots using facet_grid() with two categorical variables
+
+```{r q7}
+p7 <- ggplot(df, aes(x = ALB, y = ALP)) +
+  geom_point(color = "purple") +
+  facet_grid(Sex ~ Category) +
+  labs(title = "Q7: ALB vs ALP faceted by Sex (rows) and Category (columns)") +
+  theme_minimal()
+
+print(p7)
+```
+
+## Q8: Pairs plot - at least four numerical variables
+
+```{r q8, fig.width=7, fig.height=7}
+numerical_vars <- na.omit(df[, c("ALB", "ALP", "ALT", "AST")])
+
+pairs(numerical_vars,
+      main = "Q8 Pairs Plot: ALB, ALP, ALT, AST",
+      pch = 19,
+      col = "darkblue")
+```
+
+## Q9: Parallel coordinate plot - at least four numerical variables, differentiated by category
+
+```{r q9}
+df9 <- df[complete.cases(df[, c("ALB", "ALP", "ALT", "AST", "Category")]), ]
+
+p9 <- ggparcoord(df9,
+                  columns = c(which(names(df9) == "ALB"),
+                              which(names(df9) == "ALP"),
+                              which(names(df9) == "ALT"),
+                              which(names(df9) == "AST")),
+                  groupColumn = "Category",
+                  scale = "std",
+                  order = "anyClass",
+                  alphaLines = 0.5) +
+  labs(title = "Q9: Parallel Coordinate Plot - ALB, ALP, ALT, AST by Category") +
+  theme_minimal()
+
+print(p9)
+```

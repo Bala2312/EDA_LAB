@@ -1,0 +1,257 @@
+```{r}
+library(ggplot2)
+library(e1071)
+
+data <- read.csv("/home/anaconda/Desktop/HepatitisCdata.csv",
+                 stringsAsFactors = FALSE)
+
+data$Category <- as.factor(data$Category)
+data$Sex <- as.factor(data$Sex)
+
+data <- data[, !names(data) %in% "Unnamed.0"]
+
+print(dim(data))
+print(head(data))
+str(data)
+```
+
+```{r}
+numeric_data <- data[, sapply(data, is.numeric)]
+numeric_data <- numeric_data[, !names(numeric_data) %in% "X"]
+
+summary_statistics <- data.frame(
+  Variable = names(numeric_data),
+  Mean = sapply(numeric_data, mean, na.rm = TRUE),
+  Median = sapply(numeric_data, median, na.rm = TRUE),
+  Minimum = sapply(numeric_data, min, na.rm = TRUE),
+  Maximum = sapply(numeric_data, max, na.rm = TRUE),
+  Range = sapply(numeric_data, function(x) diff(range(x, na.rm = TRUE))),
+  Variance = sapply(numeric_data, var, na.rm = TRUE),
+  Standard_Deviation = sapply(numeric_data, sd, na.rm = TRUE),
+  IQR = sapply(numeric_data, IQR, na.rm = TRUE),
+  Skewness = sapply(numeric_data, e1071::skewness, na.rm = TRUE),
+  Kurtosis = sapply(numeric_data, e1071::kurtosis, na.rm = TRUE)
+)
+
+summary_statistics[, -1] <- round(summary_statistics[, -1], 4)
+print(summary_statistics, row.names = FALSE)
+```
+
+```{r}
+summary_statistics <- as.data.frame(summary_statistics)
+print(summary_statistics, row.names = FALSE)
+```
+
+```{r}
+category_frequency <- table(data$Category)
+category_relative_frequency <- prop.table(category_frequency)
+
+print(category_frequency)
+print(round(category_relative_frequency, 4))
+
+par(mfrow = c(1, 2))
+
+pie(category_frequency,
+    main = "Category Distribution",
+    labels = paste(names(category_frequency),
+                   round(100 * category_relative_frequency, 1), "%"))
+
+barplot(category_frequency,
+        main = "Category Frequency",
+        xlab = "Category",
+        ylab = "Frequency",
+        las = 2)
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+age <- data$Age
+
+age_breaks <- seq(
+  floor(min(age, na.rm = TRUE)),
+  ceiling(max(age, na.rm = TRUE)) + 10,
+  by = 10
+)
+
+age_breaks <- sort(unique(c(age_breaks, max(age, na.rm = TRUE) + 1)))
+age_bins <- cut(age, breaks = age_breaks, right = FALSE, include.lowest = TRUE)
+
+age_frequency <- table(age_bins)
+print(age_frequency)
+
+par(mfrow = c(1, 2))
+
+hist(age,
+     breaks = age_breaks,
+     main = "Age Histogram",
+     xlab = "Age",
+     ylab = "Frequency")
+
+boxplot(age,
+        main = "Age Box Plot",
+        ylab = "Age")
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+contingency_table <- table(data$Category, data$Sex)
+
+print(contingency_table)
+print(round(prop.table(contingency_table, margin = 1), 4))
+print(round(prop.table(contingency_table, margin = 2), 4))
+print(round(prop.table(contingency_table), 4))
+```
+
+```{r}
+barplot(contingency_table,
+        beside = FALSE,
+        main = "Category and Sex - Stacked Bar Plot",
+        xlab = "Category",
+        ylab = "Frequency",
+        legend.text = TRUE,
+        las = 2)
+```
+
+```{r}
+grouped_statistics <- aggregate(
+  ALT ~ Category,
+  data = data,
+  FUN = function(x) c(
+    Mean = mean(x, na.rm = TRUE),
+    Median = median(x, na.rm = TRUE),
+    Standard_Deviation = sd(x, na.rm = TRUE)
+  )
+)
+
+grouped_statistics <- data.frame(
+  Category = grouped_statistics$Category,
+  Mean = grouped_statistics$ALT[, "Mean"],
+  Median = grouped_statistics$ALT[, "Median"],
+  Standard_Deviation = grouped_statistics$ALT[, "Standard_Deviation"]
+)
+
+grouped_statistics[, -1] <- round(grouped_statistics[, -1], 4)
+print(grouped_statistics, row.names = FALSE)
+```
+
+```{r}
+boxplot(ALT ~ Category,
+        data = data,
+        main = "ALT Distribution Across Categories",
+        xlab = "Category",
+        ylab = "ALT",
+        las = 2)
+
+ggplot(data, aes(x = Category, y = ALT)) +
+  geom_violin(trim = FALSE) +
+  labs(title = "ALT Violin Plot Across Categories",
+       x = "Category",
+       y = "ALT") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+pearson_correlation <- cor(data$ALT, data$AST,
+                           use = "complete.obs",
+                           method = "pearson")
+
+spearman_correlation <- cor(data$ALT, data$AST,
+                            use = "complete.obs",
+                            method = "spearman")
+
+print(pearson_correlation)
+print(spearman_correlation)
+
+plot(data$ALT, data$AST,
+     main = "ALT vs AST",
+     xlab = "ALT",
+     ylab = "AST",
+     pch = 19)
+
+abline(lm(AST ~ ALT, data = data), lwd = 2)
+```
+
+```{r}
+combination_statistics <- aggregate(
+  ALT ~ Category + Sex,
+  data = data,
+  FUN = function(x) c(
+    Mean = mean(x, na.rm = TRUE),
+    Standard_Deviation = sd(x, na.rm = TRUE)
+  )
+)
+
+combination_statistics <- data.frame(
+  Category = combination_statistics$Category,
+  Sex = combination_statistics$Sex,
+  Mean = combination_statistics$ALT[, "Mean"],
+  Standard_Deviation = combination_statistics$ALT[, "Standard_Deviation"]
+)
+
+combination_statistics[, 3:4] <- round(combination_statistics[, 3:4], 4)
+print(combination_statistics, row.names = FALSE)
+
+ggplot(data, aes(x = Sex, y = ALT)) +
+  geom_boxplot() +
+  facet_wrap(~ Category) +
+  labs(title = "Faceted Box Plot of ALT by Category and Sex",
+       x = "Sex",
+       y = "ALT") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(combination_statistics, aes(x = Category, y = Mean, fill = Sex)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Mean - Standard_Deviation,
+                    ymax = Mean + Standard_Deviation),
+                position = position_dodge(width = 0.9),
+                width = 0.2) +
+  labs(title = "Mean ALT with Standard Deviation Error Bars",
+       x = "Category",
+       y = "Mean ALT") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data, aes(x = ALT, y = AST, color = Sex, shape = Sex)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "ALT vs AST by Sex",
+       x = "ALT",
+       y = "AST")
+
+for (level in levels(data$Sex)) {
+  subset_data <- data[data$Sex == level, c("ALT", "AST")]
+
+  correlation_matrix <- cor(subset_data,
+                            use = "complete.obs",
+                            method = "pearson")
+
+  cat("\nCorrelation Matrix for Sex:", level, "\n")
+  print(round(correlation_matrix, 4))
+}
+```
+
+```{r}
+selected_numeric <- data[, c("ALB", "ALT", "AST", "BIL", "CHE")]
+
+correlation_matrix <- cor(selected_numeric,
+                          use = "complete.obs",
+                          method = "pearson")
+
+print(round(correlation_matrix, 4))
+
+heatmap(correlation_matrix,
+        Rowv = NA,
+        Colv = NA,
+        scale = "none",
+        main = "Correlation Matrix Heatmap",
+        margins = c(8, 8))
+```
+
+```{r}
+pairs(data[, c("ALB", "ALT", "AST", "BIL")],
+      main = "Scatterplot Matrix",
+      pch = 19)
+```

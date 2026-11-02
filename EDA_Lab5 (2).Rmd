@@ -1,0 +1,160 @@
+```{r}
+data("mtcars")
+
+selected_data <- mtcars[
+  , c("mpg", "disp", "hp", "drat", "wt", "qsec")
+]
+
+cat("First 5 rows of selected data:\n")
+print(head(selected_data, 5))
+
+cat("\nBasic statistical summary:\n")
+print(summary(selected_data))
+
+cat("\nDataset dimensions:\n")
+print(dim(selected_data))
+```
+
+```{r}
+scaled_data <- scale(selected_data)
+
+cat("First 5 rows of standardized data:\n")
+print(round(head(scaled_data, 5), 3))
+
+cat("\nMeans after standardization:\n")
+print(round(colMeans(scaled_data), 4))
+
+cat("\nStandard deviations after standardization:\n")
+print(round(apply(scaled_data, 2, sd), 4))
+```
+
+```{r}
+pca_result <- prcomp(
+  scaled_data,
+  center = FALSE,
+  scale. = FALSE
+)
+
+cat("PCA summary:\n")
+print(summary(pca_result))
+
+cat("\nFirst 5 principal component scores:\n")
+print(round(head(pca_result$x, 5), 3))
+```
+
+```{r}
+eigenvalues <- pca_result$sdev^2
+
+variance_proportion <- eigenvalues / sum(eigenvalues)
+
+cumulative_variance <- cumsum(variance_proportion)
+
+variance_table <- data.frame(
+  Principal_Component = paste0(
+    "PC", seq_along(eigenvalues)
+  ),
+  Eigenvalue = round(eigenvalues, 4),
+  Proportion = round(variance_proportion, 4),
+  Percentage = round(variance_proportion * 100, 2),
+  Cumulative_Percentage = round(
+    cumulative_variance * 100, 2
+  )
+)
+
+print(variance_table)
+```
+
+```{r}
+number_components <- which(
+  cumulative_variance >= 0.80
+)[1]
+
+cat(
+  "Minimum number of principal components required:",
+  number_components, "\n"
+)
+
+cat(
+  "Cumulative variance explained:",
+  round(
+    cumulative_variance[number_components] * 100,
+    2
+  ),
+  "%\n"
+)
+```
+
+```{r}
+plot(
+  eigenvalues,
+  type = "b",
+  pch = 19,
+  xlab = "Principal Component",
+  ylab = "Eigenvalue",
+  main = "Scree Plot for PCA"
+)
+
+abline(h = 1, lty = 2, col = "gray")
+grid()
+
+cat(
+  "Variance explained by PC1:",
+  round(variance_proportion[1] * 100, 2),
+  "%\n"
+)
+
+cat(
+  "Variance explained by PC2:",
+  round(variance_proportion[2] * 100, 2),
+  "%\n"
+)
+
+cat(
+  "Cumulative variance explained by PC1 and PC2:",
+  round(sum(variance_proportion[1:2]) * 100, 2),
+  "%\n"
+)
+```
+
+```{r}
+loadings <- pca_result$rotation
+
+cat("Loadings for PC1 and PC2:\n")
+print(round(loadings[, 1:2, drop = FALSE], 4))
+
+cat("\nVariables ranked by absolute loading on PC1:\n")
+print(round(
+  sort(abs(loadings[, 1]), decreasing = TRUE),
+  4
+))
+
+cat("\nVariables ranked by absolute loading on PC2:\n")
+print(round(
+  sort(abs(loadings[, 2]), decreasing = TRUE),
+  4
+))
+
+pc1_top <- names(
+  sort(abs(loadings[, 1]), decreasing = TRUE)
+)[1:3]
+
+pc2_top <- names(
+  sort(abs(loadings[, 2]), decreasing = TRUE)
+)[1:3]
+
+cat("\nThree strongest variables for PC1:\n")
+print(pc1_top)
+
+cat("\nThree strongest variables for PC2:\n")
+print(pc2_top)
+```
+
+```{r}
+biplot(
+  pca_result,
+  choices = c(1, 2),
+  scale = 0,
+  cex = 0.7,
+  main = "PCA Biplot: mtcars"
+)
+```
